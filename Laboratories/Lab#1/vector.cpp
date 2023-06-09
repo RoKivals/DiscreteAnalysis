@@ -44,7 +44,7 @@ bool Vector<T>::Empty() {
 }
 
 template<class T>
-void Vector<T>::PushBack(const T& value) {
+void Vector<T>::PushBack(const T &value) {
     if (_size >= _capacity) {
         Reallocate();
     }
@@ -59,12 +59,12 @@ T Vector<T>::PopBack() {
 }
 
 template<class T>
-void Vector<T>::Set(size_t pos, const T& value) {
+void Vector<T>::Set(size_t pos, const T &value) {
     _data[pos] = value;
 }
 
 template<class T>
-T& Vector<T>::operator[](size_t pos) {
+T &Vector<T>::operator[](size_t pos) {
     if (pos >= _size) {
         throw std::out_of_range("Invalid index");
     }
@@ -72,18 +72,18 @@ T& Vector<T>::operator[](size_t pos) {
 }
 
 template<class T>
-T* Vector<T>::Begin() {
+T *Vector<T>::Begin() {
     return &_data[0];
 }
 
 template<class T>
-T* Vector<T>::End() {
+T *Vector<T>::End() {
     return &_data[_size - 1];
 }
 
 template<class T>
 void Vector<T>::Reallocate() {
-    T* new_data = new T[_capacity * GROWTH_COEF];
+    T *new_data = new T[_capacity * GROWTH_COEF];
 
     for (unsigned int i = 0; i < _size; ++i) {
         new_data[i] = _data[i];
@@ -92,10 +92,4 @@ void Vector<T>::Reallocate() {
     delete[] _data;
     _capacity = _capacity * GROWTH_COEF;
     _data = new_data;
-}
-
-int main() {
-    Vector arr = Vector<int>(3, 4);
-    int t;
-    std::cin >>t;
 }

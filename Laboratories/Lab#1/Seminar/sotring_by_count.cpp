@@ -1,32 +1,31 @@
 /*
- * Сортировка подсчётом (sort by counting) - Устойчивая сортировка за O(n^2)
+ * Сортировка подсчётом (sort by counting) - Устойчивая сортировка за O(n + k), память O(k)
+ * n - длинна входного массива, k - макс знач входного массива
  */
 #include <iostream>
 #include <vector>
 
-/*
- * Ключ - int32
- * Значение - char
- */
 struct KV {
 public:
     int32_t key;
     char value;
 
     KV() = default;
-
-    KV(int32_t i, char i1) : key(i), value(i1) {};
+    KV(int32_t key, char value) : key(key), value(value) {};
 };
 
 
-void CountingSort(const std::vector<KV> &input, int32_t max_key, std::vector<KV> &result) {
+void CountingSort(const std::vector<KV> &input, std::vector<KV> &result, const int32_t &max_key) {
     if (input.empty()) {
         return;
     }
+
+    // Выделяем необход кол-во памяти сразу
     result.resize(input.size());
+
     std::vector<size_t> B(max_key + 1, 0);
     for (auto kv: input) {
-        B[kv.key] += 1;
+        ++B[kv.key];
     }
 
     for (size_t i(1); i < B.size(); ++i) {
@@ -49,6 +48,8 @@ int main() {
         max_key = std::max(max_key, key);
     }
 
+    std::vector<KV> result;
+    CountingSort(input, result, max_key);
     for (auto elem: input) {
         std::cout << "Key: " << elem.key << " value: " << elem.value << '\n';
     }
