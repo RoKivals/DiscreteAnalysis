@@ -4,8 +4,6 @@ import sys
 import random
 import string
 
-TEST_COUNT = 8
-
 
 def get_random_string(length: int):
     random_list = [random.choice(string.ascii_letters) for _ in range(length)]
@@ -19,7 +17,6 @@ def generate_kv():
 
 
 def main():
-
     if len(sys.argv) != 3:
         print(f"Usage: {sys.argv[0]} <test count=10>")
         sys.exit(1)
