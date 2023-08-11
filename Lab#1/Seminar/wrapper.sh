@@ -65,13 +65,13 @@ function main() {
     log_info "${test_file}: OK"
   done
 
-  log_info "Stage #4 Benchmarking..."
+  log_info "Stage #05 Benchmarking..."
   if ! make benchmark; then
     log_info "Failed to compile benchmark."
     return 1
   fi
   local benchmark_bin=./benchmark
-  for test_file in $(ls ${test_dir}/*.t); do
+  for test_file in $(ls ${TESTS_DIR}/*.t); do
     log_info "Running ${test_file}"
     if ! ${benchmark_bin} <${test_file}; then
       log_error "Failed to run ${benchmark_bin} for ${test_file}."

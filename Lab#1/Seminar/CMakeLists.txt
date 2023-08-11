@@ -3,4 +3,4 @@ project(DiskretAnalysis)
 
 set(CMAKE_CXX_STANDARD 17)
 
-add_executable(DiskretAnalysis "sort.cpp")
+add_executable(DiskretAnalysis "sort.cpp" "sort.hpp" main.cpp)
