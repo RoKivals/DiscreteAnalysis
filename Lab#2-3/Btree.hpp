@@ -2,73 +2,60 @@
 #include <fstream>
 #include "Node.hpp"
 
-
-
-struct Btree {
-  Node *root;
-};
-
-std::string GetKey(Node* node, int i) {
+std::string GetKey(Node *node, int i) {
   return node->keys[i];
 }
 
-uint64_t GetValue(Node* node, int i) {
+uint64_t GetValue(Node *node, int i) {
   return node->values[i];
 }
 
-void SetKeyValue(Node* node, int i, std::string &key, uint64_t val) {
+Node *GetChild(Node *node, int i) {
+  return node->children[i];
+}
+
+void SetKeyValue(Node *node, int i, std::string &key, uint64_t val) {
   node->keys[i] = key;
   node->values[i] = val;
 }
 
-Node* GetChild(Node* node, int i) {
-  return node->children[i];
-}
-
-void SetChild(Node* node, int i, Node* child) {
+void SetChild(Node *node, int i, Node *child) {
   node->children[i] = child;
 }
 
+struct Btree {
+  Node *root;
 
-void TreeInit(Btree *tree) {
-  Node* newNode;
-  newNode = new (std::nothrow) Node;
-  if (newNode == nullptr) {
-    std::cout << "ERROR\n";
+  Btree() {
+    Node *newNode;
+    newNode = new Node;
+    newNode->keyCount = 0;
+    newNode->isLeaf = true;
+    this->root = newNode;
   }
-  newNode->n = 0;
-  newNode->isLeaf = true;
-  tree->root = newNode;
-}
 
-bool TreeSearch(Node *curNode, std::string &key, uint64_t &val) {
-  if (curNode == nullptr) {
+};
+
+#TODO: Сделать проверку ключа в узле отдельно
+// Check if the key in Tree
+bool KeyInTree(Node *currNode, std::string &key) {
+  if (currNode == nullptr) {
     return false;
-  }
-  else if (curNode->isLeaf) {
-    for (int i = 0; i < curNode->n; i++) {
-      if (key == GetKey(curNode, i) ) {
-        val = GetValue(curNode, i);
-        return true;
-      }
+  } else if (currNode->isLeaf) {
+    for (int i(0); i < currNode->keyCount; ++i) {
+      if (key == GetKey(currNode, i)) return true;
     }
     return false;
-  }
-  else {
-    if (GetKey(curNode, 0) > key) {
-      return TreeSearch(GetChild(curNode, 0), key, val);
-    }
-    else if (key > GetKey(curNode, curNode->n - 1) ) {
-      return TreeSearch(GetChild(curNode, curNode->n), key, val);
-    }
-    else {
-      for (int i = 0; i < curNode->n; i++) {
-        if ( key == GetKey(curNode, i) ) {
-          val = GetValue(curNode, i);
-          return true;
-        }
-        if ( curNode->n > 1 and key > GetKey(curNode, i) and GetKey(curNode, i + 1) > key ) {
-          return TreeSearch(GetChild(curNode, i + 1), key, val);
+  } else {
+    if (GetKey(currNode, 0) > key) {
+      return KeyInTree(GetChild(currNode, 0), key);
+    } else if (key > GetKey(currNode, currNode->keyCount - 1)) {
+      return KeyInTree(GetChild(currNode, currNode->keyCount), key);
+    } else {
+      for (int i = 0; i < currNode->keyCount; i++) {
+        if (key == GetKey(currNode, i)) return true;
+        if (currNode->keyCount > 1 and key > GetKey(currNode, i) and GetKey(currNode, i + 1) > key) {
+          return KeyInTree(GetChild(currNode, i + 1), key);
         }
       }
     }
@@ -78,30 +65,29 @@ bool TreeSearch(Node *curNode, std::string &key, uint64_t &val) {
 void TreeSplitChild(Node *parNode, int cind) {
   Node *leftChild = GetChild(parNode, cind);
   Node *rightChild;
-  rightChild = new (std::nothrow) Node;
-  if (rightChild == nullptr) {
-    std::cout << "ERROR\n";
-  }
+  rightChild = new Node;
+
   rightChild->isLeaf = leftChild->isLeaf;
-  rightChild->n = T - 1;
-  leftChild->n = T - 1;
+  rightChild->keyCount = T - 1;
+  leftChild->keyCount = T - 1;
+
   std::string key;
   for (int i = T; i < 2 * T - 1; i++) {
     key = GetKey(leftChild, i);
     SetKeyValue(rightChild, i - T, key, GetValue(leftChild, i));
   }
-  if ( !leftChild->isLeaf ) {
+  if (!leftChild->isLeaf) {
     for (int i = T; i < 2 * T; i++) {
       SetChild(rightChild, i - T, GetChild(leftChild, i));
     }
   }
 
-  parNode->n += 1;
-  for (int i = (parNode->n+1) - 1; i > cind; i--) {
+  parNode->keyCount += 1;
+  for (int i = (parNode->keyCount + 1) - 1; i > cind; i--) {
     SetChild(parNode, i, GetChild(parNode, i - 1));
   }
   SetChild(parNode, cind + 1, rightChild);
-  for (int i = parNode->n - 1; i > cind; i--) {
+  for (int i = parNode->keyCount - 1; i > cind; i--) {
     key = GetKey(parNode, i - 1);
     SetKeyValue(parNode, i, key, GetValue(parNode, i - 1));
   }
@@ -120,8 +106,7 @@ void TreeInsertToUnfullNode(Node *curNode, std::string &key, uint64_t value) {
     }
     SetKeyValue(curNode, pos + 1, key, value);
     curNode->n += 1;
-  }
-  else {
+  } else {
     while (pos >= 0 and GetKey(curNode, pos) > key) {
       pos -= 1;
     }
@@ -142,10 +127,9 @@ void TreeInsert(Btree *tree, std::string &key, uint64_t value) {
   }
   if (tree->root->n < 2 * T - 1) {
     TreeInsertToUnfullNode(tree->root, key, value);
-  }
-  else {
+  } else {
     Node *newRoot;
-    newRoot = new (std::nothrow) Node;
+    newRoot = new(std::nothrow) Node;
     newRoot->isLeaf = false;
     newRoot->n = 0;
     SetChild(newRoot, 0, tree->root);
@@ -157,7 +141,7 @@ void TreeInsert(Btree *tree, std::string &key, uint64_t value) {
 
 std::string FindMaxKey(Node *curNode) {
   Node *tmp = curNode;
-  while ( !tmp->isLeaf) {
+  while (!tmp->isLeaf) {
     tmp = GetChild(tmp, tmp->n);
   }
   return tmp->keys[tmp->n - 1];
@@ -165,7 +149,7 @@ std::string FindMaxKey(Node *curNode) {
 
 std::string FindMinKey(Node *curNode) {
   Node *tmp = curNode;
-  while ( !tmp->isLeaf) {
+  while (!tmp->isLeaf) {
     tmp = GetChild(tmp, 0);
   }
   return tmp->keys[0];
@@ -184,7 +168,7 @@ void TreeMerge(Node *curNode, int pos) {
     SetKeyValue(leftChild, i, x, GetValue(rightChild, i - T));
   }
 
-  if ( !leftChild->isLeaf) {
+  if (!leftChild->isLeaf) {
     for (int i = 0; i < rightChild->n + 1; i++) {
       SetChild(leftChild, i + T, GetChild(rightChild, i));
     }
@@ -202,8 +186,6 @@ void TreeMerge(Node *curNode, int pos) {
   leftChild->n = 2 * T - 1;
 }
 
-void TreeDeleteFromNode(Node *root, std::string &key);
-
 void StealFromChildren(Node *curNode, int pos) {
   std::string key = GetKey(curNode, pos);
   if (GetChild(curNode, pos)->n > T - 1) {
@@ -212,29 +194,27 @@ void StealFromChildren(Node *curNode, int pos) {
     TreeSearch(curNode, maxKey, val);
     SetKeyValue(curNode, pos, maxKey, val);
     TreeDeleteFromNode(GetChild(curNode, pos), maxKey);
-  }
-  else if (GetChild(curNode, pos + 1)->n > T - 1) {
-    std::string minKey = FindMinKey(GetChild(curNode, pos+1));
+  } else if (GetChild(curNode, pos + 1)->n > T - 1) {
+    std::string minKey = FindMinKey(GetChild(curNode, pos + 1));
     uint64_t val;
     TreeSearch(curNode, minKey, val);
     SetKeyValue(curNode, pos, minKey, val);
     TreeDeleteFromNode(GetChild(curNode, pos + 1), minKey);
-  }
-  else {
+  } else {
     TreeMerge(curNode, pos);
     TreeDeleteFromNode(GetChild(curNode, pos), key);
   }
 }
 
-void StealFromLeftBrother(Node* curNode, int pos) {
-  Node* thief = GetChild(curNode, pos);
-  Node* victim = GetChild(curNode, pos - 1);
+void StealFromLeftBrother(Node *curNode, int pos) {
+  Node *thief = GetChild(curNode, pos);
+  Node *victim = GetChild(curNode, pos - 1);
   std::string x;
   for (int i = thief->n; i >= 1; i--) {
     x = GetKey(thief, i - 1);
     SetKeyValue(thief, i, x, GetValue(thief, i - 1));
   }
-  if ( !thief->isLeaf) {
+  if (!thief->isLeaf) {
     for (int i = thief->n + 1; i >= 1; i--) {
       SetChild(thief, i, GetChild(thief, i - 1));
     }
@@ -242,7 +222,7 @@ void StealFromLeftBrother(Node* curNode, int pos) {
 
   x = GetKey(curNode, pos - 1);
   SetKeyValue(thief, 0, x, GetValue(curNode, pos - 1));
-  if ( !thief->isLeaf) {
+  if (!thief->isLeaf) {
     SetChild(thief, 0, GetChild(victim, victim->n));
   }
 
@@ -253,15 +233,15 @@ void StealFromLeftBrother(Node* curNode, int pos) {
   victim->n -= 1;
 }
 
-void StealFromRightBrother(Node* curNode, int pos) {
-  Node* thief = GetChild(curNode, pos);
-  Node* victim = GetChild(curNode, pos + 1);
+void StealFromRightBrother(Node *curNode, int pos) {
+  Node *thief = GetChild(curNode, pos);
+  Node *victim = GetChild(curNode, pos + 1);
   std::string x;
 
   x = GetKey(curNode, pos);
   SetKeyValue(thief, thief->n, x, GetValue(curNode, pos));
 
-  if ( !thief->isLeaf) {
+  if (!thief->isLeaf) {
     SetChild(thief, thief->n + 1, GetChild(victim, 0));
   }
 
@@ -272,7 +252,7 @@ void StealFromRightBrother(Node* curNode, int pos) {
     x = GetKey(victim, i + 1);
     SetKeyValue(victim, i, x, GetValue(victim, i + 1));
   }
-  if ( !victim->isLeaf) {
+  if (!victim->isLeaf) {
     for (int i = 0; i < victim->n + 1; i++) {
       SetChild(victim, i, GetChild(victim, i + 1));
     }
@@ -284,7 +264,7 @@ void StealFromRightBrother(Node* curNode, int pos) {
 
 void TreeDeleteFromNode(Node *curNode, std::string &key) {
   int pos = 0;
-  while (pos < curNode->n and key > GetKey(curNode, pos) ) {
+  while (pos < curNode->n and key > GetKey(curNode, pos)) {
     pos++;
   }
   if (pos < curNode->n and GetKey(curNode, pos) == key) {
@@ -294,20 +274,16 @@ void TreeDeleteFromNode(Node *curNode, std::string &key) {
         SetKeyValue(curNode, i - 1, x, GetValue(curNode, i));
       }
       curNode->n--;
-    }
-    else {
+    } else {
       StealFromChildren(curNode, pos);
     }
-  }
-  else {
+  } else {
     if (GetChild(curNode, pos)->n == T - 1) {
       if (pos != 0 and GetChild(curNode, pos - 1)->n > T - 1) {
         StealFromLeftBrother(curNode, pos);
-      }
-      else if (pos != curNode->n and GetChild(curNode, pos + 1)->n > T - 1) {
+      } else if (pos != curNode->n and GetChild(curNode, pos + 1)->n > T - 1) {
         StealFromRightBrother(curNode, pos);
-      }
-      else {
+      } else {
         if (pos != curNode->n) {
           TreeMerge(curNode, pos);
         } else {
@@ -317,8 +293,7 @@ void TreeDeleteFromNode(Node *curNode, std::string &key) {
     }
     if (pos > curNode->n) {
       TreeDeleteFromNode(GetChild(curNode, pos - 1), key);
-    }
-    else {
+    } else {
       TreeDeleteFromNode(GetChild(curNode, pos), key);
     }
   }
@@ -331,8 +306,7 @@ void TreeDelete(Btree *tree, std::string &key) {
       if (tree->root->isLeaf) {
         delete tree->root;
         tree->root = nullptr;
-      }
-      else {
+      } else {
         Node *newRoot = GetChild(tree->root, 0);
         delete tree->root;
         tree->root = newRoot;
@@ -345,12 +319,12 @@ void Save(Node *curNode, std::ofstream &stream) {
   if (curNode != nullptr) {
     for (int i = 0; i < curNode->n; i++) {
       uint64_t val = GetValue(curNode, i);
-      stream.write((char*) &val, sizeof(uint64_t));
+      stream.write((char *) &val, sizeof(uint64_t));
       int strSize = curNode->keys[i].size();
-      stream.write((char*) &strSize, sizeof(strSize));
-      stream.write(GetKey(curNode,i).c_str(), sizeof(char) * strSize);
+      stream.write((char *) &strSize, sizeof(strSize));
+      stream.write(GetKey(curNode, i).c_str(), sizeof(char) * strSize);
     }
-    if ( !curNode->isLeaf) {
+    if (!curNode->isLeaf) {
       for (int i = 0; i <= curNode->n; i++) {
         Save(GetChild(curNode, i), stream);
       }
@@ -358,13 +332,12 @@ void Save(Node *curNode, std::ofstream &stream) {
   }
 }
 
-void Load(Btree* tree, std::ifstream &stream) {
+void Load(Btree *tree, std::ifstream &stream) {
   uint64_t val;
   int strSize;
   std::string key;
-  Node* node;
-  while (stream.read((char *) &val, sizeof(uint64_t)))
-  {
+  Node *node;
+  while (stream.read((char *) &val, sizeof(uint64_t))) {
     stream.read((char *) &strSize, sizeof(strSize));
     key.resize(strSize);
     stream.read((char *) key.data(), strSize);
@@ -374,7 +347,7 @@ void Load(Btree* tree, std::ifstream &stream) {
 
 void Destroy(Node *root) {
   if (root != nullptr) {
-    if ( !root->isLeaf) {
+    if (!root->isLeaf) {
       for (int i = 0; i <= root->n; i++) {
         Destroy(GetChild(root, i));
       }
