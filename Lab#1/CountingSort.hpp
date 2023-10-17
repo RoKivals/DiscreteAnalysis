@@ -1,22 +1,10 @@
+#pragma once
+
 #include <iostream>
 #include <vector>
 #include <string>
 
 using namespace std;
-
-// Оператор ввода для пары
-template<class T, class Y>
-std::istream &operator>>(std::istream &in, std::pair<T, Y> &p) {
-  in >> p.first >> p.second;
-  return in;
-}
-
-// Оператор вывода для пары
-template<class T, class Y>
-std::ostream &operator<<(std::ostream &out, std::pair<T, Y> &p) {
-  out << p.first << "\t" << p.second;
-  return out;
-}
 
 // GetKey - Функция, которая вытаскивает ключ из пары
 template<class T>
@@ -46,21 +34,7 @@ void CountingSort(vector<T> &data) {
     res[--count_keys[data[i].first]] = data[i];
   }
 
-  for (size_t i(0); i < res.size(); ++i) {
-    cout << res[i] << '\n';
-  }
-}
-
-int main() {
-  std::ios::sync_with_stdio(false);
-  std::cin.tie(nullptr);
-
-  vector<std::pair<uint16_t, string>> data;
-  std::pair<uint16_t, string> temp;
-
-  while (cin >> temp) {
-    data.push_back(std::move(temp));
-  }
-
-  CountingSort<std::pair<uint16_t, string>>(data);
+//  for (size_t i(0); i < res.size(); ++i) {
+//    cout << res[i] << '\n';
+//  }
 }

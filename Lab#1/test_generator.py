@@ -1,5 +1,3 @@
-#! C:/Users/slava/AppData/Local/Programs/Python/Python310/python
-
 import sys
 import random
 import string
@@ -24,22 +22,17 @@ def main():
 
     test_count = int(sys.argv[2])
     test_dir = sys.argv[1]
-    for num in range(test_count):
-        lines_count = random.randint(0, 100)
+    for num in range(1, test_count):
+        lines_count = random.randint(100, 1000)
         input_array = []
         for _ in range(lines_count):
             key, value = generate_kv()
             input_array.append((key, value))
-        #answer = sorted(input_array, key=lambda x: x[0])
         test_path_base = f"{test_dir}/{num:02d}"
 
         with open(f"{test_path_base}.t", "w") as ifd:
             for key, value in input_array:
                 ifd.write(f"{key} {value}\n")
-
-        # with open(f"{test_path_base}.a", "w") as ifd:
-        #     for key, value in answer:
-        #         ifd.write(f"{key} {value}\n")
 
 
 if __name__ == '__main__':

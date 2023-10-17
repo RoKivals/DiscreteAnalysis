@@ -1,4 +1,4 @@
-#include "CountingSort.h"
+#include "CountingSort.hpp"
 
 using namespace std;
 
@@ -30,7 +30,7 @@ int main() {
     while (cin >> temp) {
         data.PushBack(temp);
     }
-    CountingSort<Pair<size_t, string>>(data, [](const Pair<size_t, string> &pair) { return pair.key; });
+    CountingSort<Pair<size_t, string>>(data);
     for (size_t i(0); i < data.Size(); ++i) {
         cout << data[i];
     }

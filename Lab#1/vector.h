@@ -35,7 +35,7 @@ class Vector {
 
   T PopBack();
 
-  void Set(uint16_t, const T &);
+  void Set(size_t, const T &);
 
   Vector<T> &operator=(const Vector &);
 
@@ -71,7 +71,7 @@ Vector<T> &Vector<T>::operator=(Vector &&another) noexcept {
 template<class T>
 Vector<T>::Vector() {
   this->_size = 0;
-  this->_capacity = 8;
+  this->_capacity = 2;
   this->_data = new T[_capacity];
 }
 
@@ -145,7 +145,7 @@ T Vector<T>::PopBack() {
 }
 
 template<class T>
-void Vector<T>::Set(uint16_t pos, const T &value) {
+void Vector<T>::Set(size_t pos, const T &value) {
   _data[pos] = value;
 }
 
