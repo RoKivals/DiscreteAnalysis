@@ -1,6 +1,8 @@
 #include <iostream>
 #include <string>
 #include <fstream>
+#include <algorithm>
+#include <vector>
 
 // T обычно располагается в диапазоне от 50 до 2К => все числа, работающие с индексами можно взять за uint16_t
 
@@ -9,22 +11,21 @@
 // T - 1 <= len(keys) <= 2T - 1
 const int T = 3;
 
+/// TODO: заменить всё на векторы
 struct Node {
-  int keyCount;
-  bool isLeaf;
-  std::string keys[2 * T - 1]{};
-  uint64_t values[2 * T - 1]{};
-  Node *children[2 * T]{};
-
-  Node() {
-    keyCount = 0;
-    isLeaf = false;
-  }
+  int keyCount = 0;
+  bool isLeaf = false;
+//  std::vector <std::string> keys;
+//  std::vector <uint64_t> values;
+//  std::vector <Node> children;
+  std::string keys[2 * T - 1];
+  uint64_t values[2 * T - 1];
+  Node *children[2 * T];
 };
 
 struct Btree {
  private:
-  static std::string GetKey(Node *node, int i) {
+  static std::string &GetKey(Node *node, int i) {
     return node->keys[i];
   }
 
@@ -36,8 +37,8 @@ struct Btree {
     return node->children[i];
   }
 
-  static void SetKeyValue(Node *node, int i, std::string &key, uint64_t val) {
-    node->keys[i] = std::move(key);
+  static void SetKeyValue(Node *node, int i, std::string &key, uint64_t &val) {
+    node->keys[i] = key;
     node->values[i] = val;
   }
 
@@ -49,20 +50,18 @@ struct Btree {
     return node->keyCount == 2 * T - 1;
   }
 
-  static std::string MaxKey(Node *currNode) {
-    Node *tmp = currNode;
-    while (!tmp->isLeaf) {
-      tmp = GetChild(tmp, tmp->keyCount);
+  static std::string &MaxKey(Node *currNode) {
+    while (!currNode->isLeaf) {
+      currNode = GetChild(currNode, currNode->keyCount);
     }
-    return tmp->keys[tmp->keyCount - 1];
+    return currNode->keys[currNode->keyCount - 1];
   }
 
-  static std::string MinKey(Node *currNode) {
-    Node *tmp = currNode;
-    while (!tmp->isLeaf) {
-      tmp = GetChild(tmp, 0);
+  static std::string &MinKey(Node *currNode) {
+    while (!currNode->isLeaf) {
+      currNode = GetChild(currNode, 0);
     }
-    return tmp->keys[0];
+    return currNode->keys[0];
   }
 
   static void MergeChildsToFull(Node *currNode, int pos) {
@@ -74,7 +73,7 @@ struct Btree {
     SetKeyValue(leftChild, T - 1, temp_key, temp_val);
 
     // Перемещаем пары из правого сына в левого
-    for (int i(T); i < 2 * T - 1; ++i) {
+    for (int i(T); i < 2 * T - 1; i++) {
       temp_key = GetKey(rightChild, i - T);
       temp_val = GetValue(rightChild, i - T);
       SetKeyValue(leftChild, i, temp_key, temp_val);
@@ -82,7 +81,7 @@ struct Btree {
 
     // Перемещаем детей правого сына в левого сына
     if (!leftChild->isLeaf) {
-      for (int i(0); i < rightChild->keyCount + 1; ++i) {
+      for (int i(0); i < rightChild->keyCount + 1; i++) {
         SetChild(leftChild, i + T, GetChild(rightChild, i));
       }
     }
@@ -111,10 +110,10 @@ struct Btree {
 
     if (idx < currNode->keyCount and GetKey(currNode, idx) == key) {
       if (currNode->isLeaf) {
-        for (int i(idx); i < currNode->keyCount; ++i) {
-          auto temp_key = GetKey(currNode, i + 1);
-          auto temp_val = GetValue(currNode, i + 1);
-          SetKeyValue(currNode, i, temp_key, temp_val);
+        for (int i(idx + 1); i < currNode->keyCount; ++i) {
+          auto temp_key = GetKey(currNode, i);
+          auto temp_val = GetValue(currNode, i);
+          SetKeyValue(currNode, i - 1, temp_key, temp_val);
         }
         currNode->keyCount--;
       } else {
@@ -123,9 +122,9 @@ struct Btree {
     } else {
       if (GetChild(currNode, idx)->keyCount == T - 1) {
         if (idx != 0 and GetChild(currNode, idx - 1)->keyCount > T - 1) {
-          DeleteFromLeftSon(currNode, idx);
+          PickFromLeftSon(currNode, idx);
         } else if (idx != currNode->keyCount and GetChild(currNode, idx + 1)->keyCount > T - 1) {
-          DeleteFromRightSon(currNode, idx);
+          PickFromRightSon(currNode, idx);
         } else {
           if (idx != currNode->keyCount) {
             MergeChildsToFull(currNode, idx);
@@ -164,7 +163,7 @@ struct Btree {
     }
   }
 
-  static void DeleteFromLeftSon(Node *currNode, int pos) {
+  static void PickFromLeftSon(Node *currNode, int pos) {
     Node *destination = GetChild(currNode, pos);
     Node *sender = GetChild(currNode, pos - 1);
 
@@ -194,12 +193,12 @@ struct Btree {
     sender->keyCount -= 1;
   }
 
-  static void DeleteFromRightSon(Node *curNode, int pos) {
-    Node *destination = GetChild(curNode, pos);
-    Node *sender = GetChild(curNode, pos + 1);
+  static void PickFromRightSon(Node *currNode, int pos) {
+    Node *destination = GetChild(currNode, pos);
+    Node *sender = GetChild(currNode, pos + 1);
 
-    auto temp_key = GetKey(destination, pos);
-    auto temp_val = GetValue(destination, pos);
+    auto temp_key = GetKey(currNode, pos);
+    auto temp_val = GetValue(currNode, pos);
 
     SetKeyValue(destination, destination->keyCount, temp_key, temp_val);
 
@@ -209,7 +208,7 @@ struct Btree {
 
     temp_key = GetKey(sender, 0);
     temp_val = GetValue(sender, 0);
-    SetKeyValue(curNode, pos, temp_key, temp_val);
+    SetKeyValue(currNode, pos, temp_key, temp_val);
 
     for (int i = 0; i < sender->keyCount - 1; i++) {
       temp_key = GetKey(sender, i + 1);
@@ -231,7 +230,7 @@ struct Btree {
 
     if (currNode->isLeaf) {
       while (idx >= 0 and GetKey(currNode, idx) > key) {
-        auto temp_key = GetKey(currNode, idx);
+        auto &temp_key = GetKey(currNode, idx);
         auto temp_val = GetValue(currNode, idx);
         SetKeyValue(currNode, idx + 1, temp_key, temp_val);
         idx -= 1;
@@ -260,17 +259,9 @@ struct Btree {
   Node *root;
 
   Btree() {
-    Node *newNode = new Node();
+    Node *newNode = new Node;
     newNode->isLeaf = true;
     this->root = newNode;
-  }
-
-  void TreeInit(Btree *tree) {
-    Node *newNode;
-    newNode = new Node;
-    newNode->keyCount = 0;
-    newNode->isLeaf = true;
-    tree->root = newNode;
   }
 
   // Check if the key in Tree
@@ -309,50 +300,52 @@ struct Btree {
 
   static void BTreeSplitChild(Node *parent, int child_idx) {
     Node *leftChild = GetChild(parent, child_idx);
-    Node *rightChild = new Node();
+    Node *rightChild = new Node;
 
     rightChild->isLeaf = leftChild->isLeaf;
     rightChild->keyCount = T - 1;
+    leftChild->keyCount = T - 1;
 
     // Перемещаем T - 1 ключ в правого ребёнка
-    for (int i(0); i < T - 1; ++i) {
-      auto key = GetKey(leftChild, i + T);
-      auto val = GetValue(leftChild, i + T);
-      SetKeyValue(rightChild, i, key, val);
+    for (int i(T); i < 2 * T - 1; ++i) {
+      auto &key = GetKey(leftChild, i);
+      auto val = GetValue(leftChild, i);
+      SetKeyValue(rightChild, i - T, key, val);
     }
 
     if (!leftChild->isLeaf) {
-      for (int i(0); i < T; ++i) {
-        SetChild(rightChild, i, GetChild(leftChild, i + T));
+      for (int i(T); i < 2 * T; ++i) {
+        SetChild(rightChild, i - T, GetChild(leftChild, i));
       }
     }
 
+    parent->keyCount += 1;
     // Добавление ребёнка к родителю
-    for (int i(parent->keyCount + 1); i > child_idx + 1; --i) {
+    for (int i(parent->keyCount); i > child_idx; --i) {
       SetChild(parent, i, GetChild(parent, i - 1));
     }
     SetChild(parent, child_idx + 1, rightChild);
 
     // Добавление нового ключа родителю
-    for (int i(parent->keyCount); i > child_idx; --i) {
-      auto key = GetKey(parent, i - 1);
+    for (int i(parent->keyCount - 1); i > child_idx; --i) {
+      auto &key = GetKey(parent, i - 1);
       auto value = GetValue(parent, i - 1);
       SetKeyValue(parent, i, key, value);
     }
-    auto key = GetKey(leftChild, T - 1);
+    auto &key = GetKey(leftChild, T - 1);
     auto value = GetValue(leftChild, T - 1);
     SetKeyValue(parent, child_idx, key, value);
-
-    leftChild->keyCount = T - 1;
-    parent->keyCount += 1;
   }
 
-  static void TreeInsert(Btree *tree, std::string &key, uint64_t &value) {
+  static void TreeInsert(Btree *&tree, std::string &&key, uint64_t &value) {
+    if (tree->root == nullptr) {
+      tree = new Btree();
+    }
     Node *node = tree->root;
     if (!NodeIsFull(node)) {
       TreeInsertNonFullNode(node, key, value);
     } else {
-      Node *newRoot = new Node();
+      Node *newRoot = new Node;
       newRoot->isLeaf = false;
       SetChild(newRoot, 0, node);
       tree->root = newRoot;
@@ -378,6 +371,18 @@ struct Btree {
     }
   }
 
+  static void Load(Btree *tree, std::ifstream &stream) {
+    uint64_t val;
+    int strSize;
+    while (stream.read((char *) &val, sizeof(uint64_t))) {
+      std::string key;
+      stream.read((char *) &strSize, sizeof(strSize));
+      key.resize(strSize);
+      stream.read((char *) key.data(), strSize);
+      TreeInsert(tree, std::move(key), val);
+    }
+  }
+
   static void ClearTree(Btree *tree, std::string &key) {
     if (tree->root != nullptr) {
       TreeDeleteFromNode(tree->root, key);
@@ -394,19 +399,6 @@ struct Btree {
     }
   }
 
-  static void Load(Btree *tree, std::ifstream &stream) {
-    uint64_t val;
-    int strSize;
-    std::string key;
-    Node *node;
-    while (stream.read((char *) &val, sizeof(uint64_t))) {
-      stream.read((char *) &strSize, sizeof(strSize));
-      key.resize(strSize);
-      stream.read((char *) key.data(), strSize);
-      TreeInsert(tree, key, val);
-    }
-  }
-
   static void Destroy(Node *tree) {
     if (tree != nullptr) {
       if (!tree->isLeaf) {
@@ -419,29 +411,25 @@ struct Btree {
   }
 };
 
-void Parser(Btree *tree) {
-  std::string cmd;
-  while (std::cin >> cmd) {
-    if (cmd == "+") {
+void Parser(Btree *&tree) {
+  std::string command;
+  while (std::cin >> command) {
+    if (command == "+") {
       std::string key;
-      uint64_t value;
+      uint64_t value, res;
       std::cin >> key >> value;
-      for (int i = 0; i < key.size(); i++) {
-        key[i] = tolower(key[i]);
-      }
-      uint64_t res;
+      std::transform(key.begin(), key.end(), key.begin(), ::tolower);
+
       if (Btree::PairInTree(tree->root, key, res)) {
         std::cout << "Exist\n";
       } else {
-        Btree::TreeInsert(tree, key, value);
+        Btree::TreeInsert(tree, std::move(key), value);
         std::cout << "OK\n";
       }
-    } else if (cmd == "-") {
+    } else if (command == "-") {
       std::string key;
       std::cin >> key;
-      for (int i = 0; i < key.size(); i++) {
-        key[i] = tolower(key[i]);
-      }
+      std::transform(key.begin(), key.end(), key.begin(), ::tolower);
       uint64_t res;
       if (!Btree::PairInTree(tree->root, key, res)) {
         std::cout << "NoSuchWord\n";
@@ -449,18 +437,18 @@ void Parser(Btree *tree) {
         Btree::ClearTree(tree, key);
         std::cout << "OK\n";
       }
-    } else if (cmd == "!") {
+    } else if (command == "!") {
       std::string cmd, path;
       std::cin >> cmd;
       if (cmd == "Save") {
         std::cin >> path;
-        std::ofstream ostream(path, std::ios::binary);
+        std::ofstream ostream(path);
         Btree::Save(tree->root, ostream);
         ostream.close();
         std::cout << "OK\n";
       } else if (cmd == "Load") {
         std::cin >> path;
-        std::ifstream istream(path, std::ios::binary);
+        std::ifstream istream(path);
         Btree::Destroy(tree->root);
         tree = new Btree();
         Btree::Load(tree, istream);
@@ -470,11 +458,9 @@ void Parser(Btree *tree) {
         std::cout << "ERROR\n";
       }
     } else {
-      for (int i = 0; i < cmd.size(); i++) {
-        cmd[i] = tolower(cmd[i]);
-      }
+      std::transform(command.begin(), command.end(), command.begin(), ::tolower);
       uint64_t val;
-      if (!Btree::PairInTree(tree->root, cmd, val)) {
+      if (!Btree::PairInTree(tree->root, command, val)) {
         std::cout << "NoSuchWord\n";
       } else {
         std::cout << "OK: " << val << "\n";
